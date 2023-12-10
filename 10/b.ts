@@ -13,21 +13,21 @@ function mapGet([x, y]: [number, number]) {
   return map[y]?.[x];
 }
 
-const expects = [
-  { dir: [0, -1], expect: "|7F" }, //top
-  { dir: [1, 0], expect: "-7J" }, //right
-  { dir: [0, 1], expect: "|LJ" }, // bottom
-  { dir: [-1, 0], expect: "-LF" }, // left
-] as const;
+const expects = {
+  T: { dir: [0, -1], expect: "|7F" }, //top
+  R: { dir: [1, 0], expect: "-7J" }, //right
+  B: { dir: [0, 1], expect: "|LJ" }, // bottom
+  L: { dir: [-1, 0], expect: "-LF" }, // left
+} as const;
 
 const expectByPipe = {
-  "|": [expects[0], expects[2]],
-  "-": [expects[1], expects[3]],
-  "7": [expects[2], expects[3]],
-  J: [expects[0], expects[3]],
-  L: [expects[0], expects[1]],
-  F: [expects[1], expects[2]],
-  S: expects,
+  "|": [expects.T, expects.B],
+  "-": [expects.R, expects.L],
+  "7": [expects.B, expects.L],
+  J: [expects.T, expects.L],
+  L: [expects.T, expects.R],
+  F: [expects.R, expects.B],
+  S: [expects.T, expects.R, expects.B, expects.L],
 };
 
 const [sx, sy] = start;
@@ -44,7 +44,6 @@ do {
     if (!visited.has(key) && expect.includes(mapGet(check))) {
       curr = check;
       visited.add(key);
-
       break;
     }
 
@@ -59,26 +58,33 @@ do {
   }
 } while (curr[0] !== sx || curr[1] !== sy);
 
-for (let y = 0; y < map.length; y++) {
-  for (let x = 0; x < map[y].length; x++) {
-    const key = `${x}_${y}`;
-    if (!visited.has(key)) {
-      map[y][x] = ".";
-    }
+for (const [p, dirs] of Object.entries(expectByPipe)) {
+  if (p === "S") continue;
+
+  const point1: [number, number] = [sx + dirs[0].dir[0], sy + dirs[0].dir[1]];
+  const point2: [number, number] = [sx + dirs[1].dir[0], sy + dirs[1].dir[1]];
+
+  if (
+    dirs[0].expect.includes(mapGet(point1)) &&
+    dirs[1].expect.includes(mapGet(point2))
+  ) {
+    map[sy][sx] = p;
+    break;
   }
 }
 
+let res = 0;
 for (let y = 0; y < map.length; y++) {
   let inside = false;
-  let startingWith = "";
+  let lastCorner = "";
   for (let x = 0; x < map[y].length; x++) {
-    let c = mapGet([x, y]);
+    if (!visited.has(`${x}_${y}`)) {
+      map[y][x] = ".";
+    }
 
-    // TODO: Encontrar um forma para realizar a subtituição corretamente
-    if (c === "S") c = "L";
-
+    const c = mapGet([x, y]);
     if (c === ".") {
-      map[y][x] = inside ? "I" : "O";
+      res += inside ? 1 : 0;
       continue;
     }
 
@@ -92,26 +98,20 @@ for (let y = 0; y < map.length; y++) {
     }
 
     if (c === "F" || c === "L") {
-      startingWith = c;
+      lastCorner = c;
       continue;
     }
 
-    if (c === "7" && startingWith === "L") {
+    if (c === "7" && lastCorner === "L") {
       inside = !inside;
       continue;
     }
 
-    if (c === "J" && startingWith === "F") {
+    if (c === "J" && lastCorner === "F") {
       inside = !inside;
       continue;
     }
   }
 }
-
-const res = map.reduce((acc, line) => {
-  return (acc += line.reduce((acc, c) => {
-    return (acc += c === "I" ? 1 : 0);
-  }, 0));
-}, 0);
 
 console.log(res);
