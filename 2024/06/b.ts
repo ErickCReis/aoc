@@ -33,12 +33,39 @@ for await (let line of inputStream) {
 
 const guardStart = { ...guard };
 
+const orginalPath = new Set<string>();
+while (true) {
+  const nextInfo = nextPos[guard.dir];
+
+  const nextY = guard.y + nextInfo.y;
+  const nextX = guard.x + nextInfo.x;
+
+  const next = map[nextY]?.[nextX];
+  if (!next) {
+    break;
+  }
+
+  if (next === ".") {
+    guard.y = nextY;
+    guard.x = nextX;
+    orginalPath.add(`${nextY}_${nextX}`);
+  }
+
+  if (next === "#") {
+    guard.dir = nextInfo.dir;
+  }
+}
+
 let res = 0;
 
 for (let y = 0; y < map.length; y++) {
   for (let x = 0; x < map[y].length; x++) {
     const point = map[y][x];
     if (point === "#") {
+      continue;
+    }
+
+    if (!orginalPath.has(`${y}_${x}`)) {
       continue;
     }
 
